@@ -8,6 +8,7 @@ plugins {
 
 group = 'io.github.x1111101101'
 version = '1.0-SNAPSHOT'
+mainClassName = "io.github.x1111101101.dataset.Main"
 
 repositories {
     mavenCentral()
@@ -20,6 +21,7 @@ dependencies {
 
     implementation("io.ktor:ktor-server-core")
     implementation("io.ktor:ktor-server-netty")
+    implementation("io.ktor:ktor-server-sse")
     implementation("io.ktor:ktor-server-host-common:2.0.0")
 
     implementation("ch.qos.logback:logback-classic:$logback_version")
@@ -37,12 +39,20 @@ dependencies {
     implementation("com.squareup.retrofit2:retrofit:2.9.0")
     implementation("com.squareup.retrofit2:converter-scalars:2.9.0")
     implementation("javax.xml.bind:jaxb-api:2.3.1")
-
-    implementation("io.github.pdvrieze.xmlutil:serialization:0.84.3")
 }
 
 jar {
     from 'resources'
+}
+
+task apiSourceJar(type: Jar) {
+    dependsOn(compileKotlin)
+    from {
+        fileTree("$buildDir/classes/kotlin/main") {
+            include 'io/github/x1111101101/dataset/capture/model/public/**'
+        }
+    }
+    archiveClassifier.set('api')
 }
 
 test {
@@ -50,4 +60,13 @@ test {
 }
 kotlin {
     jvmToolchain(21)
+}
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            artifactId = "datasetbuilder"
+            from components.kotlin
+            artifact apiSourceJar
+        }
+    }
 }
