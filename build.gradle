@@ -50,6 +50,7 @@ task apiSourceJar(type: Jar) {
     from {
         fileTree("$buildDir/classes/kotlin/main") {
             include 'io/github/x1111101101/dataset/capture/model/public/**'
+            include 'io/github/x1111101101/dataset/capture/dto/**'
         }
     }
     archiveClassifier.set('api')
