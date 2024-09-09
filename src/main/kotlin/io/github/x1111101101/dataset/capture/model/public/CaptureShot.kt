@@ -8,6 +8,7 @@ class CaptureShot(
     val captures: List<Capture>,
     val foods: List<LabeledFood>,
     val scaleWeight: Double,
+    val time: String,
 ) {
 
 }

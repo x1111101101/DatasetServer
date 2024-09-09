@@ -6,6 +6,7 @@ import kotlinx.serialization.Serializable
 data class Capture(
     val workerId: Int,
     val imageId: String,
+    val time: String
 ) {
 
 }
