@@ -1,18 +1,18 @@
 package io.github.x1111101101.dataset.capture.route
 
 import io.github.x1111101101.dataset.capture.dto.CaptureStartRequest
+import io.github.x1111101101.dataset.capture.dto.CaptureUploadRequest
 import io.github.x1111101101.dataset.capture.service.CaptureService
+import io.ktor.http.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.sse.*
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.time.withTimeout
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import java.time.Duration
-import java.time.temporal.ChronoUnit
 
 fun Routing.routeCaptures() {
     route("capture") {
@@ -24,16 +24,33 @@ fun Routing.routeCaptures() {
             call.respondText(Json.encodeToString(response))
         }
         sse("state/{ch}") {
+            println("SSE: ${call.request.userAgent()}")
             val channel = call.parameters["ch"]?.toIntOrNull()
             if(channel == null || channel !in 0..1) {
+                println("INVALID")
                 return@sse
             }
-            withTimeout(Duration.of(30, ChronoUnit.SECONDS)) {
-                CaptureService.captureSessionState(channel).map {
-                    send(Json.encodeToString(it))
-                }.stateIn(this)
-            }
+            CaptureService.captureSessionStateAsFlow(channel).map {
+                send(Json.encodeToString(it))
+            }.stateIn(this)
+            println("SSE close: ${call.request.userAgent()}")
         }
-        post("upload") {  }
+        get("currentstate/{ch}") {
+            val channel = call.parameters["ch"]?.toIntOrNull()
+            if(channel == null || channel !in 0..1) {
+                return@get
+            }
+            call.respondText(Json.encodeToString(CaptureService.captureSessionState(channel)))
+        }
+        post("upload") {
+            println("upload request")
+            val json = call.receiveText()
+            val request = Json.decodeFromString<CaptureUploadRequest>(json)
+            CaptureService.uploadCapture(request)
+            call.respond(HttpStatusCode.OK)
+        }
+        post("snapshot") {
+
+        }
     }
 }

@@ -1,5 +1,6 @@
 package io.github.x1111101101.dataset
 
+import java.text.SimpleDateFormat
 import java.util.*
 
 val PROPERTIES = Properties().apply {
@@ -11,4 +12,10 @@ private fun loadProperties(instance: Properties) {
     url.openStream().use {
         it.bufferedReader().use { reader-> instance.load(reader) }
     }
+}
+
+inline fun Date.formatted(): String {
+    val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
+    val formattedTime: String = dateFormat.format(this)
+    return formattedTime
 }

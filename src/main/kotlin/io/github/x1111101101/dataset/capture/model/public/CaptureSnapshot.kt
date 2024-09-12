@@ -1,5 +1,6 @@
 package io.github.x1111101101.dataset.capture.model.public
 
+import io.github.x1111101101.dataset.formatted
 import kotlinx.serialization.Serializable
 import java.text.SimpleDateFormat
 import java.util.*
@@ -20,10 +21,4 @@ data class CaptureSnapshot(
             time = Date(0).formatted()
         )
     }
-}
-
-private fun Date.formatted(): String {
-    val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
-    val formattedTime: String = dateFormat.format(this)
-    return formattedTime
 }

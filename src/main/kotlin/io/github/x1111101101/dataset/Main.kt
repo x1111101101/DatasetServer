@@ -18,7 +18,7 @@ fun main() {
 private fun Application.module() {
     routing {
         get {
-            call.respondText("HELLO")
+            call.respondText("https://drive.google.com/file/d/1c0H1Jh386OB5mjydoUc8Sa2LEctqh5Fp/view?usp=sharing")
         }
         routeCaptures()
     }
