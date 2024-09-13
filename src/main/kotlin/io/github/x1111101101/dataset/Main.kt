@@ -7,6 +7,11 @@ import io.ktor.server.netty.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.sse.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.asCoroutineDispatcher
+import java.util.concurrent.Executors
+
+val mainScope = CoroutineScope(Executors.newScheduledThreadPool(10).asCoroutineDispatcher())
 
 fun main() {
     embeddedServer(Netty, port = 5101) {
@@ -17,8 +22,9 @@ fun main() {
 
 private fun Application.module() {
     routing {
+        val addr= "https://drive.google.com/drive/folders/1mozYJNeArRtVVBsKKUPpHaBSBz5b410G?usp=sharing"
         get {
-            call.respondText("https://drive.google.com/file/d/1c0H1Jh386OB5mjydoUc8Sa2LEctqh5Fp/view?usp=sharing")
+            call.respondRedirect(addr)
         }
         routeCaptures()
     }

@@ -27,7 +27,7 @@ fun Routing.routeCaptures() {
             println("SSE: ${call.request.userAgent()}")
             val channel = call.parameters["ch"]?.toIntOrNull()
             if(channel == null || channel !in 0..1) {
-                println("INVALID")
+                println("INVALID: $channel")
                 return@sse
             }
             CaptureService.captureSessionStateAsFlow(channel).map {
@@ -48,9 +48,6 @@ fun Routing.routeCaptures() {
             val request = Json.decodeFromString<CaptureUploadRequest>(json)
             CaptureService.uploadCapture(request)
             call.respond(HttpStatusCode.OK)
-        }
-        post("snapshot") {
-
         }
     }
 }
