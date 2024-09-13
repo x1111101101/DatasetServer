@@ -2,16 +2,19 @@ package io.github.x1111101101.dataset
 
 import io.github.x1111101101.dataset.capture.route.routeCaptures
 import io.ktor.server.application.*
+import io.ktor.server.application.ApplicationProperties
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.sse.*
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.asCoroutineDispatcher
 import java.util.concurrent.Executors
+import io.ktor.server.application.ApplicationProperties as ApplicationProperties1
 
-val mainScope = CoroutineScope(Executors.newScheduledThreadPool(10).asCoroutineDispatcher())
+val mainScope = CoroutineScope(Executors.newFixedThreadPool(10).asCoroutineDispatcher())
 
 fun main() {
     embeddedServer(Netty, port = 5101) {

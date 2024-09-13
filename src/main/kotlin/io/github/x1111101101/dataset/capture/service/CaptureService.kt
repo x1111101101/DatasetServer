@@ -10,11 +10,9 @@ import io.github.x1111101101.dataset.capture.model.internal.CaptureChannel
 import io.github.x1111101101.dataset.capture.model.internal.CaptureJob
 import io.github.x1111101101.dataset.capture.model.public.CompleteCapture
 import io.github.x1111101101.dataset.mainScope
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import java.io.InputStream
 import java.util.*
 
 object CaptureService {
@@ -41,17 +39,17 @@ object CaptureService {
         return CaptureStartResponse(true, sessionId.toString())
     }
 
-    suspend fun uploadCapture(request: CaptureUploadRequest) {
+    suspend fun uploadCapture(request: CaptureUploadRequest, imageStream: InputStream) {
+        println("upload request")
         val channelId = request.channelId
         val channel = channels[channelId] ?: throw IllegalArgumentException()
         val imageId = UUID.randomUUID()
+
         channel.addCapture(UUID.fromString(request.captureSessionId), request.deviceId, imageId)
-        coroutineScope {
-            launch {
-                val data = Base64.getDecoder().decode(request.imageBase64)
-                ImageDao.create(imageId, data)
-            }
-        }
+        val bytes = imageStream.use { it.readBytes() }
+        mainScope.launch {
+            ImageDao.create(imageId, bytes)
+        }.join()
     }
 
     fun captureSessionState(channelId: Int): CaptureStateResponse {
@@ -61,10 +59,8 @@ object CaptureService {
 
     suspend fun captureSessionStateAsFlow(channelId: Int): Flow<CaptureStateResponse> {
         val channel = channels[channelId] ?: return flowOf(CaptureStateResponse(false, "", emptyMap()))
-        return flow {
-            channel.lastUpdate.collect {
-                it?.job?.let { emit(fromJob(it)) }
-            }
+        return channel.lastUpdate.map {
+            fromJob(it?.job)
         }
     }
 

@@ -5,7 +5,6 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class CaptureUploadRequest(
     val channelId: Int,
-    val imageBase64: String,
     val captureSessionId: String,
     val deviceId: Int
 ) {
