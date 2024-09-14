@@ -44,10 +44,9 @@ object CaptureService {
         val channelId = request.channelId
         val channel = channels[channelId] ?: throw IllegalArgumentException()
         val imageId = UUID.randomUUID()
-
         channel.addCapture(UUID.fromString(request.captureSessionId), request.deviceId, imageId)
-        val bytes = imageStream.use { it.readBytes() }
         mainScope.launch {
+            val bytes = imageStream.use { it.readBytes() }
             ImageDao.create(imageId, bytes)
         }.join()
     }

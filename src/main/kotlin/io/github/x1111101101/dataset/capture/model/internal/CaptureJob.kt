@@ -1,5 +1,6 @@
 package io.github.x1111101101.dataset.capture.model.internal
 
+import com.google.common.collect.Sets
 import io.github.x1111101101.dataset.capture.model.public.Capture
 import io.github.x1111101101.dataset.capture.model.public.CaptureSnapshot
 import java.time.LocalDateTime
@@ -12,7 +13,7 @@ class CaptureJob(
 ) {
 
     val createTime = System.currentTimeMillis()
-    val captures = ArrayList<Capture>()
+    val captures = Sets.newConcurrentHashSet<Capture>()
 
 
 

@@ -3,16 +3,13 @@ package io.github.x1111101101.dataset.capture.route
 import io.github.x1111101101.dataset.capture.dto.CaptureStartRequest
 import io.github.x1111101101.dataset.capture.dto.CaptureUploadRequest
 import io.github.x1111101101.dataset.capture.service.CaptureService
-import io.github.x1111101101.dataset.mainScope
 import io.ktor.http.*
+import io.ktor.server.plugins.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.sse.*
 import io.ktor.util.cio.*
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.withContext
 import kotlinx.io.IOException
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -28,29 +25,26 @@ fun Routing.routeCaptures() {
             call.respondText(Json.encodeToString(response))
         }
         sse("state/{ch}") {
+            val connectionPoint = call.request.origin
+            val ip = connectionPoint.localAddress
             try {
-                println("SSE: ${call.request.userAgent()}")
+                println("$ip: SSE")
                 val channel = call.parameters["ch"]?.toIntOrNull()
                 if (channel == null || channel !in 0..1) {
                     println("INVALID: $channel")
                     return@sse
                 }
                 send(Json.encodeToString(CaptureService.captureSessionState(channel)))
-                CaptureService.captureSessionStateAsFlow(channel).map {
+                CaptureService.captureSessionStateAsFlow(channel).collect {
                     send(Json.encodeToString(it))
-                }.stateIn(this)
-                println("SSE close: ${call.request.userAgent()}")
+                }
+                println("$ip: SSE close")
 
             } catch (_: SocketException) {
             } catch (_: ChannelWriteException) {
             } catch (_: IOException) { }
-        }
-        get("currentstate/{ch}") {
-            val channel = call.parameters["ch"]?.toIntOrNull()
-            if (channel == null || channel !in 0..1) {
-                return@get
-            }
-            call.respondText(Json.encodeToString(CaptureService.captureSessionState(channel)))
+            println("$ip: SSE close complete")
+            close()
         }
         post("upload") {
             val json = call.request.queryParameters["request"]!!
