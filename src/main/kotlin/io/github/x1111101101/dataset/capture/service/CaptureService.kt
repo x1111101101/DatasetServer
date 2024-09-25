@@ -2,10 +2,10 @@ package io.github.x1111101101.dataset.capture.service
 
 import io.github.x1111101101.dataset.capture.dao.CompleteCaptureDao
 import io.github.x1111101101.dataset.capture.dao.ImageDao
-import io.github.x1111101101.dataset.capture.dto.CaptureStartRequest
-import io.github.x1111101101.dataset.capture.dto.CaptureStartResponse
-import io.github.x1111101101.dataset.capture.dto.CaptureStateResponse
-import io.github.x1111101101.dataset.capture.dto.CaptureUploadRequest
+import io.github.x1111101101.dataset.capture.dto.instruction.CaptureStartRequest
+import io.github.x1111101101.dataset.capture.dto.instruction.CaptureStartResponse
+import io.github.x1111101101.dataset.capture.dto.CaptureChannelStateResponse
+import io.github.x1111101101.dataset.capture.dto.instruction.CaptureSavedReport
 import io.github.x1111101101.dataset.capture.model.internal.CaptureChannel
 import io.github.x1111101101.dataset.capture.model.internal.CaptureJob
 import io.github.x1111101101.dataset.capture.model.public.CompleteCapture
@@ -39,7 +39,7 @@ object CaptureService {
         return CaptureStartResponse(true, sessionId.toString())
     }
 
-    suspend fun uploadCapture(request: CaptureUploadRequest, imageStream: InputStream) {
+    suspend fun uploadCapture(request: CaptureSavedReport, imageStream: InputStream) {
         println("upload request")
         val channelId = request.channelId
         val channel = channels[channelId] ?: throw IllegalArgumentException()
@@ -51,13 +51,13 @@ object CaptureService {
         }.join()
     }
 
-    fun captureSessionState(channelId: Int): CaptureStateResponse {
-        val channel = channels[channelId] ?: return CaptureStateResponse(false, "", emptyMap())
+    fun captureSessionState(channelId: Int): CaptureChannelStateResponse {
+        val channel = channels[channelId] ?: return CaptureChannelStateResponse(false, "", emptyMap())
         return fromJob(channel.currentJob.value)
     }
 
-    suspend fun captureSessionStateAsFlow(channelId: Int): Flow<CaptureStateResponse> {
-        val channel = channels[channelId] ?: return flowOf(CaptureStateResponse(false, "", emptyMap()))
+    suspend fun captureSessionStateAsFlow(channelId: Int): Flow<CaptureChannelStateResponse> {
+        val channel = channels[channelId] ?: return flowOf(CaptureChannelStateResponse(false, "", emptyMap()))
         return channel.lastUpdate.map {
             fromJob(it?.job)
         }
@@ -68,9 +68,9 @@ object CaptureService {
         CompleteCaptureDao.create(completeCapture)
     }
 
-    private fun fromJob(job: CaptureJob?): CaptureStateResponse {
-        if (job == null) return CaptureStateResponse(false, "", emptyMap())
-        return CaptureStateResponse(
+    private fun fromJob(job: CaptureJob?): CaptureChannelStateResponse {
+        if (job == null) return CaptureChannelStateResponse(false, "", emptyMap())
+        return CaptureChannelStateResponse(
             true,
             job.sessionId.toString(),
             job.captures.map { it.workerId to it.imageId }.toMap()

@@ -14,7 +14,7 @@ object ImageDao {
 
     fun create(uuid: UUID, data: ByteArray) {
         File(folder, "${uuid}.jpg").writeBytes(data)
-        println("image saved")
+        println("image saved: $uuid")
     }
 
 }

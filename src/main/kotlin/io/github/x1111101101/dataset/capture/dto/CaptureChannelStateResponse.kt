@@ -3,9 +3,9 @@ package io.github.x1111101101.dataset.capture.dto
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class CaptureUploadRequest(
-    val channelId: Int,
+data class CaptureChannelStateResponse(
+    val exist: Boolean,
     val captureSessionId: String,
-    val deviceId: Int
+    val workers: Map<Int, Boolean>,
 ) {
 }

@@ -1,33 +1,57 @@
 package io.github.x1111101101.dataset.capture.model.internal
 
+import io.github.x1111101101.dataset.capture.dto.CaptureChannelStateResponse
+import io.github.x1111101101.dataset.capture.dto.instruction.CaptureInstructionResponse
+import io.github.x1111101101.dataset.capture.dto.instruction.CaptureUploadInstructionResponse
 import io.github.x1111101101.dataset.capture.model.public.Capture
 import io.github.x1111101101.dataset.capture.model.public.CaptureSnapshot
 import io.github.x1111101101.dataset.capture.model.public.CompleteCapture
 import io.github.x1111101101.dataset.formatted
+import io.github.x1111101101.dataset.mainScope
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import java.util.*
-import kotlin.collections.ArrayList
 
 class CaptureChannel(val id: Int) {
 
-    val workers = ArrayList<Int>()
+    private var lastInstruction = 0L
     private val _currentJob = MutableStateFlow<CaptureJob?>(null)
-    val currentJob = _currentJob.asStateFlow()
     private val _lastUpdate = MutableStateFlow<CaptureJobUpdate?>(null)
-    val lastUpdate = _lastUpdate.asStateFlow()
     private val _lastCompleteCapture = Channel<CompleteCapture>()
+    private val _currentInstruction = MutableStateFlow(CaptureInstructionResponse(CaptureUploadInstructionResponse(0)))
+
+    // Instruction that will be sent to workers
+    val currentInstruction = _currentInstruction.asStateFlow()
+    val currentJob = _currentJob.asStateFlow()
+    val lastUpdate = _lastUpdate.asStateFlow()
     val lastCompleteCapture = _lastCompleteCapture.receiveAsFlow()
+
+    init {
+        mainScope.launch {
+            uploadInstructionLoop()
+        }
+    }
+
+    private suspend fun uploadInstructionLoop() {
+        while(true) {
+            delay(3000)
+            _currentInstruction.update {
+                CaptureInstructionResponse(CaptureUploadInstructionResponse(lastInstruction))
+            }
+        }
+    }
 
     fun startSession(sessionId: UUID, devices: List<Int>, snapshot: CaptureSnapshot) {
         val job = CaptureJob(sessionId, devices, snapshot)
-        _currentJob.update {
-            job
-        }
+        _currentJob.update { job }
         _lastUpdate.update { CaptureJobUpdate(System.currentTimeMillis(), job) }
+        val instruction = CaptureInstructionResponse(CaptureChannelStateResponse(true, job.sessionId.toString(), job.devices.map { it to false }.toMap()))
+        _currentInstruction.update { instruction }
     }
 
     suspend fun addCapture(sessionId: UUID, workerId: Int, image: UUID) {
