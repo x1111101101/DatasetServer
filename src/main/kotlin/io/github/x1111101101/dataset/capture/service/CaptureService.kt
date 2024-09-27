@@ -5,6 +5,7 @@ import io.github.x1111101101.dataset.capture.dao.ImageDao
 import io.github.x1111101101.dataset.capture.dto.instruction.CaptureStartRequest
 import io.github.x1111101101.dataset.capture.dto.instruction.CaptureStartResponse
 import io.github.x1111101101.dataset.capture.dto.CaptureChannelStateResponse
+import io.github.x1111101101.dataset.capture.dto.instruction.CaptureSaveResponse
 import io.github.x1111101101.dataset.capture.dto.instruction.CaptureSavedReport
 import io.github.x1111101101.dataset.capture.model.internal.CaptureChannel
 import io.github.x1111101101.dataset.capture.model.internal.CaptureJob
@@ -14,6 +15,7 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.io.InputStream
 import java.util.*
+import kotlin.collections.HashMap
 
 object CaptureService {
 
@@ -31,6 +33,8 @@ object CaptureService {
         }
     }
 
+    fun getChannelInstructionStateFlow(channelId: Int) = channels[channelId]!!.currentInstruction
+
     fun startCaptureSession(request: CaptureStartRequest): CaptureStartResponse {
         val channelId = request.channelId
         val channel = channels[channelId] ?: return CaptureStartResponse(false, "")
@@ -39,16 +43,13 @@ object CaptureService {
         return CaptureStartResponse(true, sessionId.toString())
     }
 
-    suspend fun uploadCapture(request: CaptureSavedReport, imageStream: InputStream) {
+    suspend fun allocateCapture(request: CaptureSavedReport): CaptureSaveResponse {
         println("upload request")
         val channelId = request.channelId
         val channel = channels[channelId] ?: throw IllegalArgumentException()
         val imageId = UUID.randomUUID()
         channel.addCapture(UUID.fromString(request.captureSessionId), request.deviceId, imageId)
-        mainScope.launch {
-            val bytes = imageStream.use { it.readBytes() }
-            ImageDao.create(imageId, bytes)
-        }.join()
+        return CaptureSaveResponse(imageId.toString())
     }
 
     fun captureSessionState(channelId: Int): CaptureChannelStateResponse {
@@ -70,10 +71,12 @@ object CaptureService {
 
     private fun fromJob(job: CaptureJob?): CaptureChannelStateResponse {
         if (job == null) return CaptureChannelStateResponse(false, "", emptyMap())
+        val workerMap = HashMap<Int, Boolean>()
+        job.devices.forEach { workerId-> workerMap[workerId] = job.captures.firstOrNull { it.workerId == workerId } != null }
         return CaptureChannelStateResponse(
             true,
             job.sessionId.toString(),
-            job.captures.map { it.workerId to it.imageId }.toMap()
+            workerMap
         )
     }
 

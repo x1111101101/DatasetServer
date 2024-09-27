@@ -34,39 +34,28 @@ fun Routing.routeCaptures() {
                 println("$ip: SSE")
                 val channel = call.parameters["ch"]?.toIntOrNull()
                 if (channel == null || channel !in 0..1) {
-                    println("INVALID: $channel")
+                    println("invalid channel id: $channel")
+                    close()
                     return@sse
                 }
-                send(Json.encodeToString(CaptureService.captureSessionState(channel)))
-                launch {
-                    CaptureService.captureSessionStateAsFlow(channel).collect {
-                        send(Json.encodeToString(it))
-                    }
+                CaptureService.getChannelInstructionStateFlow(channel).collect {
+                    send(Json.encodeToString(it))
                 }
-                launch {
-                    while (isActive) {
-                        delay(3000)
-
-                    }
-                }
-
-                println("$ip: SSE close")
-
             } catch (_: SocketException) {
             } catch (_: ChannelWriteException) {
-            } catch (_: IOException) {
-            }
+            } catch (_: IOException) {}
             println("$ip: SSE close complete")
             close()
         }
-        sse("capturestate") {
+        sse("capturestate/{ch}") {
             val connectionPoint = call.request.origin
             val ip = connectionPoint.localAddress
             try {
                 println("$ip: SSE")
                 val channel = call.parameters["ch"]?.toIntOrNull()
                 if (channel == null || channel !in 0..1) {
-                    println("INVALID: $channel")
+                    println("invalid channel id: $channel")
+                    close()
                     return@sse
                 }
                 send(Json.encodeToString(CaptureService.captureSessionState(channel)))
@@ -80,11 +69,11 @@ fun Routing.routeCaptures() {
             println("$ip: SSE close complete")
             close()
         }
-        post("upload") {
-            val json = call.request.queryParameters["request"]!!
+        post("save") {
+            val json = call.receiveText()
             val request = Json.decodeFromString<CaptureSavedReport>(json)
-            CaptureService.uploadCapture(request, call.receiveStream())
-            call.respond(HttpStatusCode.OK)
+            val response = CaptureService.allocateCapture(request)
+            call.respondText(Json.encodeToString(response))
         }
     }
 }
