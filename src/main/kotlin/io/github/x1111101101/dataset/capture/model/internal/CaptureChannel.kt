@@ -19,7 +19,7 @@ import java.util.*
 
 class CaptureChannel(val id: Int) {
 
-    private var lastInstruction = 0L
+    private var lastUploadInstruction = 0L
     private val _currentJob = MutableStateFlow<CaptureJob?>(null)
     private val _lastUpdate = MutableStateFlow<CaptureJobUpdate?>(null)
     private val _lastCompleteCapture = Channel<CompleteCapture>()
@@ -41,7 +41,7 @@ class CaptureChannel(val id: Int) {
         while(true) {
             delay(3000)
             _currentInstruction.update {
-                CaptureInstructionResponse(CaptureUploadInstructionResponse(lastInstruction))
+                CaptureInstructionResponse(CaptureUploadInstructionResponse(lastUploadInstruction))
             }
         }
     }
@@ -52,6 +52,13 @@ class CaptureChannel(val id: Int) {
         _lastUpdate.update { CaptureJobUpdate(System.currentTimeMillis(), job) }
         val instruction = CaptureInstructionResponse(CaptureChannelStateResponse(true, job.sessionId.toString(), job.devices.map { it to false }.toMap()))
         _currentInstruction.update { instruction }
+    }
+
+    fun startUploading() {
+        lastUploadInstruction = System.currentTimeMillis()
+        _currentInstruction.update {
+            CaptureInstructionResponse(CaptureUploadInstructionResponse(lastUploadInstruction))
+        }
     }
 
     suspend fun addCapture(sessionId: UUID, workerId: Int, image: UUID) {

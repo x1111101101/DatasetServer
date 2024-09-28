@@ -2,17 +2,18 @@ package io.github.x1111101101.dataset.capture.service
 
 import io.github.x1111101101.dataset.capture.dao.CompleteCaptureDao
 import io.github.x1111101101.dataset.capture.dao.ImageDao
-import io.github.x1111101101.dataset.capture.dto.instruction.CaptureStartRequest
-import io.github.x1111101101.dataset.capture.dto.instruction.CaptureStartResponse
 import io.github.x1111101101.dataset.capture.dto.CaptureChannelStateResponse
-import io.github.x1111101101.dataset.capture.dto.instruction.CaptureSaveResponse
-import io.github.x1111101101.dataset.capture.dto.instruction.CaptureSavedReport
+import io.github.x1111101101.dataset.capture.dto.instruction.*
 import io.github.x1111101101.dataset.capture.model.internal.CaptureChannel
 import io.github.x1111101101.dataset.capture.model.internal.CaptureJob
 import io.github.x1111101101.dataset.capture.model.public.CompleteCapture
 import io.github.x1111101101.dataset.mainScope
+import io.ktor.util.*
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.InputStream
 import java.util.*
 import kotlin.collections.HashMap
@@ -78,6 +79,28 @@ object CaptureService {
             job.sessionId.toString(),
             workerMap
         )
+    }
+
+    suspend fun uploadImages(request: WorkerCaptureUploadRequest): WorkerCaptureUploadResponse {
+        return withContext(mainScope.coroutineContext) {
+            val succeed = request.captures.map {
+                async {
+                    try {
+                        val uuid = UUID.fromString(it.imageId)
+                        ImageDao.create(uuid, it.imageBase64.decodeBase64Bytes())
+                        return@async it.imageId
+                    } catch (e: Exception) {
+                        return@async null
+                    }
+                }
+            }.awaitAll().filterNotNull()
+            return@withContext WorkerCaptureUploadResponse(succeed.map { it })
+        }
+    }
+
+    fun startUpload(channelId: Int) {
+        val channel = channels[channelId] ?: throw IllegalArgumentException()
+        channel.startUploading()
     }
 
 }

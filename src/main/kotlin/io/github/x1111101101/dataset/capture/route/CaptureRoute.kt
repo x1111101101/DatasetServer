@@ -2,6 +2,8 @@ package io.github.x1111101101.dataset.capture.route
 
 import io.github.x1111101101.dataset.capture.dto.instruction.CaptureStartRequest
 import io.github.x1111101101.dataset.capture.dto.instruction.CaptureSavedReport
+import io.github.x1111101101.dataset.capture.dto.instruction.CaptureUploadStartRequest
+import io.github.x1111101101.dataset.capture.dto.instruction.WorkerCaptureUploadRequest
 import io.github.x1111101101.dataset.capture.service.CaptureService
 import io.ktor.http.*
 import io.ktor.server.plugins.*
@@ -74,6 +76,18 @@ fun Routing.routeCaptures() {
             val request = Json.decodeFromString<CaptureSavedReport>(json)
             val response = CaptureService.allocateCapture(request)
             call.respondText(Json.encodeToString(response))
+        }
+        post("upload") {
+            val json = call.receiveText()
+            val request = Json.decodeFromString<WorkerCaptureUploadRequest>(json)
+            val response = CaptureService.uploadImages(request)
+            call.respondText(Json.encodeToString(response))
+        }
+        post("startupload") {
+            val json = call.receiveText()
+            val request = Json.decodeFromString<CaptureUploadStartRequest>(json)
+            CaptureService.startUpload(request.channelId)
+            call.respond(HttpStatusCode.OK)
         }
     }
 }
