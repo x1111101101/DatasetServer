@@ -39,10 +39,14 @@ class CaptureChannel(val id: Int) {
 
     private suspend fun uploadInstructionLoop() {
         while(true) {
-            delay(3000)
+            delay(800)
             _currentInstruction.update {
                 CaptureInstructionResponse(CaptureUploadInstructionResponse(lastUploadInstruction))
             }
+            delay(800)
+            val job = this.currentJob.value ?: continue
+            val instruction = CaptureInstructionResponse(CaptureChannelStateResponse(true, job.sessionId.toString(), job.devices.map { it to false }.toMap()))
+            _currentInstruction.update { instruction }
         }
     }
 

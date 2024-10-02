@@ -14,7 +14,7 @@ import kotlinx.coroutines.asCoroutineDispatcher
 import java.util.concurrent.Executors
 import io.ktor.server.application.ApplicationProperties as ApplicationProperties1
 
-val mainScope = CoroutineScope(Executors.newFixedThreadPool(10).asCoroutineDispatcher())
+val mainScope = CoroutineScope(Executors.newFixedThreadPool(30).asCoroutineDispatcher())
 
 fun main() {
     embeddedServer(Netty, port = 5101) {

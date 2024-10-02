@@ -7,6 +7,7 @@ import io.github.x1111101101.dataset.capture.dto.instruction.*
 import io.github.x1111101101.dataset.capture.model.internal.CaptureChannel
 import io.github.x1111101101.dataset.capture.model.internal.CaptureJob
 import io.github.x1111101101.dataset.capture.model.public.CompleteCapture
+import io.github.x1111101101.dataset.capture.util.toSha1String
 import io.github.x1111101101.dataset.mainScope
 import io.ktor.util.*
 import kotlinx.coroutines.async
@@ -45,7 +46,7 @@ object CaptureService {
     }
 
     suspend fun allocateCapture(request: CaptureSavedReport): CaptureSaveResponse {
-        println("upload request")
+        //println("upload request")
         val channelId = request.channelId
         val channel = channels[channelId] ?: throw IllegalArgumentException()
         val imageId = UUID.randomUUID()
@@ -81,12 +82,26 @@ object CaptureService {
         )
     }
 
+    suspend fun forceUploadImage(imageId: UUID, sha1: String, imageBytes: ByteArray): WorkerCaptureUploadResponse {
+        println("Force Upload: $imageId")
+        val sha1Input = imageBytes.toSha1String()
+        if(sha1 != sha1Input) {
+            System.err.println("SHA 1 불일치")
+            return WorkerCaptureUploadResponse(emptyList())
+        }
+        return withContext(mainScope.coroutineContext) {
+            ImageDao.create(imageId, imageBytes)
+            return@withContext WorkerCaptureUploadResponse(listOf(imageId.toString()))
+        }
+    }
+
     suspend fun uploadImages(request: WorkerCaptureUploadRequest): WorkerCaptureUploadResponse {
         return withContext(mainScope.coroutineContext) {
             val succeed = request.captures.map {
                 async {
                     try {
                         val uuid = UUID.fromString(it.imageId)
+                        //println("uploadImages: ${uuid}")
                         ImageDao.create(uuid, it.imageBase64.decodeBase64Bytes())
                         return@async it.imageId
                     } catch (e: Exception) {
@@ -94,7 +109,7 @@ object CaptureService {
                     }
                 }
             }.awaitAll().filterNotNull()
-            return@withContext WorkerCaptureUploadResponse(succeed.map { it })
+            return@withContext WorkerCaptureUploadResponse(succeed)
         }
     }
 
