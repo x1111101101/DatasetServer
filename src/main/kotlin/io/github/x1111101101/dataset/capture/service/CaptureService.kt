@@ -118,4 +118,16 @@ object CaptureService {
         channel.startUploading()
     }
 
+    fun getSnapshots(): List<UUID> {
+        return CompleteCaptureDao.getAll()
+    }
+
+    fun getSnapshot(id: UUID): String? {
+        return CompleteCaptureDao.getSnapshot(id)
+    }
+
+    fun getImage(id: UUID): ByteArray? {
+        return ImageDao.get(id)
+    }
+
 }

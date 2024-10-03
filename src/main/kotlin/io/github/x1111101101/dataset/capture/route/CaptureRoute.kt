@@ -1,7 +1,7 @@
 package io.github.x1111101101.dataset.capture.route
 
-import io.github.x1111101101.dataset.capture.dto.instruction.CaptureStartRequest
 import io.github.x1111101101.dataset.capture.dto.instruction.CaptureSavedReport
+import io.github.x1111101101.dataset.capture.dto.instruction.CaptureStartRequest
 import io.github.x1111101101.dataset.capture.dto.instruction.CaptureUploadStartRequest
 import io.github.x1111101101.dataset.capture.dto.instruction.WorkerCaptureUploadRequest
 import io.github.x1111101101.dataset.capture.service.CaptureService
@@ -12,22 +12,18 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.sse.*
-import io.ktor.util.*
 import io.ktor.util.cio.*
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.io.IOException
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.net.SocketException
-import java.util.UUID
+import java.util.*
 
 fun Routing.routeCaptures() {
     route("capture") {
+        routeDatasetApi()
         post("start") {
             println("start request")
             val json = call.receiveText()
@@ -51,7 +47,8 @@ fun Routing.routeCaptures() {
                 }
             } catch (_: SocketException) {
             } catch (_: ChannelWriteException) {
-            } catch (_: IOException) {}
+            } catch (_: IOException) {
+            }
             println("$ip: SSE close complete")
             close()
         }
@@ -94,15 +91,15 @@ fun Routing.routeCaptures() {
         post("forceupload/{imageId}") {
             withContext(mainScope.coroutineContext) {
                 val imageId = call.pathParameters["imageId"] ?: throw IllegalArgumentException()
-                val sha1 = call.queryParameters["sha1"]?: throw IllegalArgumentException()
+                val sha1 = call.queryParameters["sha1"] ?: throw IllegalArgumentException()
                 println("FORCE UPLOAD!!!!!! $imageId")
-                val imageBytes = call.receiveStream().use { ins->
+                val imageBytes = call.receiveStream().use { ins ->
                     val bytes = ByteArrayOutputStream()
                     var read = -1
-                    while(ins.read().also { read = it } != -1) {
+                    while (ins.read().also { read = it } != -1) {
                         bytes.write(read)
-                        if(bytes.size() % 5000 == 0) {
-                            println("received: ${bytes.size()/1000}kb")
+                        if (bytes.size() % (1024 * 500) == 0) {
+                            println("received: ${bytes.size() / 1000}kb")
                         }
                     }
                     bytes.toByteArray()
