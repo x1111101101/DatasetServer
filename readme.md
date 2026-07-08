@@ -1,5 +1,5 @@
-# **Dataset Server**
-
-# Process
-
-
+# **Dataset Server (Archived)**
+- 2024년 진행한 플젝
+- 기능:
+  - 다중 디바이스(스마트폰 카메라) 제어
+  - 파일 트리 구조로 학습 데이터 관리
